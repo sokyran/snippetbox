@@ -1,2 +1,4 @@
-# snippetbox
-Service created to share code snippets
+# Snippetbox
+Service created to share code snippets.
+
+
