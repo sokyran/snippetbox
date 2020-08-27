@@ -6,6 +6,7 @@ import (
 	"runtime/debug"
 )
 
+// Returns Internal Server Error
 func (app *application) serverError(w http.ResponseWriter, err error) {
 	trace := fmt.Sprintf("%s\n%s", err.Error(), debug.Stack())
 	app.errorLog.Output(2, trace)
