@@ -4,6 +4,7 @@ import (
 	"avgustavgust/snippetbox/pkg/models"
 	"errors"
 	"fmt"
+	"html/template"
 	"net/http"
 	"strconv"
 )
@@ -14,32 +15,32 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// files := []string{
-	// 	"./ui/html/home.page.tmpl",
-	// 	"./ui/html/base.layout.tmpl",
-	// 	"./ui/html/footer.partial.tmpl",
-	// }
-
-	s, err := app.snippets.Latest()
-	if err != nil {
-		app.serverError(w, err)
-		return
+	files := []string{
+		"./ui/html/home.page.tmpl",
+		"./ui/html/base.layout.tmpl",
+		"./ui/html/footer.partial.tmpl",
 	}
 
-	for _, snippet := range s {
-		fmt.Fprintf(w, "%v\n", snippet)
-	}
-
-	// ts, err := template.ParseFiles(files...)
+	// s, err := app.snippets.Latest()
 	// if err != nil {
 	// 	app.serverError(w, err)
 	// 	return
 	// }
 
-	// err = ts.Execute(w, nil)
-	// if err != nil {
-	// 	app.serverError(w, err)
+	// for _, snippet := range s {
+	// 	fmt.Fprintf(w, "%v\n", snippet)
 	// }
+
+	ts, err := template.ParseFiles(files...)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	err = ts.Execute(w, nil)
+	if err != nil {
+		app.serverError(w, err)
+	}
 }
 
 func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
@@ -48,6 +49,7 @@ func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
 		app.notFound(w)
 		return
 	}
+
 	s, err := app.snippets.Get(id)
 	if err != nil {
 		if errors.Is(err, models.ErrNoRecord) {
@@ -57,7 +59,26 @@ func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	fmt.Fprintf(w, "%v", s)
+
+	files := []string{
+		"./ui/html/show.page.tmpl",
+		"./ui/html/base.layout.tmpl",
+		"./ui/html/footer.partial.tmpl",
+	}
+
+	ts, err := template.ParseFiles(files...)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	td := &templateData{Snippet: s}
+
+	err = ts.Execute(w, td)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
 }
 
 func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
