@@ -4,6 +4,7 @@
     padding: 0;
     font-size: 18px;
     font-family: "Ubuntu Mono", monospace;
+    word-wrap: break-word;
 }
 
 html, body {
@@ -25,7 +26,7 @@ main {
     margin-top: 54px;
     margin-bottom: 54px;
     min-height: calc(100vh - 345px);
-    overflow: auto;
+    /* overflow: auto; */
 }
 
 h1 a {
