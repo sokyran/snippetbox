@@ -117,13 +117,34 @@ func (app *application) signupUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) loginUserForm(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte(" + app"))
+	app.render(w, r, "login.page.html", &templateData{Form: forms.New(nil)})
 }
 
 func (app *application) loginUser(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte(" + app"))
+	err := r.ParseForm()
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	form := forms.New(r.PostForm)
+	id, err := app.users.Authenticate(form.Get("email"), form.Get("password"))
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidCredentials) {
+			form.Errors.Add("generic", "Email or Password is wrong")
+			app.render(w, r, "login.page.html", &templateData{Form: form})
+		} else {
+			app.serverError(w, err)
+		}
+		return
+	}
+	app.session.Put(r, "authenticatedUserID", id)
+
+	http.Redirect(w, r, "/snippet/create", http.StatusSeeOther)
 }
 
 func (app *application) logoutUser(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte(" + app"))
+	app.session.Remove(r, "authenticatedUserID")
+	app.session.Put(r, "flash", "You've been logged out succesfully!")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
