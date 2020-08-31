@@ -4,25 +4,27 @@ import (
 	"net/http"
 
 	"github.com/bmizerany/pat"
+	"github.com/justinas/alice"
 )
 
 func (app *application) routes() http.Handler {
+	standardMiddleware := alice.New(app.recoverPanic, app.logRequest, secureHeaders)
+	// Use the nosurf middleware on all our 'dynamic' routes.
+	dynamicMiddleware := alice.New(app.session.Enable, noSurf)
+
 	mux := pat.New()
+	mux.Get("/", dynamicMiddleware.ThenFunc(app.home))
+	mux.Get("/snippet/create", dynamicMiddleware.Append(app.requireAuthentication).ThenFunc(app.createSnippetForm))
+	mux.Post("/snippet/create", dynamicMiddleware.Append(app.requireAuthentication).ThenFunc(app.createSnippet))
+	mux.Get("/snippet/:id", dynamicMiddleware.ThenFunc(app.showSnippet))
+	mux.Get("/user/signup", dynamicMiddleware.ThenFunc(app.signupUserForm))
+	mux.Post("/user/signup", dynamicMiddleware.ThenFunc(app.signupUser))
+	mux.Get("/user/login", dynamicMiddleware.ThenFunc(app.loginUserForm))
+	mux.Post("/user/login", dynamicMiddleware.ThenFunc(app.loginUser))
+	mux.Post("/user/logout", dynamicMiddleware.Append(app.requireAuthentication).ThenFunc(app.logoutUser))
 
-	mux.Get("/", app.session.Enable(http.HandlerFunc(app.home)))
-	mux.Get("/snippet/create", app.session.Enable(app.requireAuthentication(http.HandlerFunc(app.createSnippetForm))))
-	mux.Post("/snippet/create", app.session.Enable(app.requireAuthentication(http.HandlerFunc(app.createSnippet))))
-	mux.Get("/snippet/:id", app.session.Enable(http.HandlerFunc(app.showSnippet)))
+	fileServer := http.FileServer(http.Dir("./ui/static/"))
+	mux.Get("/static/", http.StripPrefix("/static", fileServer))
 
-	mux.Get("/user/signup", app.session.Enable(http.HandlerFunc(app.signupUserForm)))
-	mux.Post("/user/signup", app.session.Enable(http.HandlerFunc(app.signupUser)))
-	mux.Get("/user/login", app.session.Enable(http.HandlerFunc(app.loginUserForm)))
-	mux.Post("/user/login", app.session.Enable(http.HandlerFunc(app.loginUser)))
-
-	mux.Post("/user/logout", app.session.Enable(app.requireAuthentication(http.HandlerFunc(app.logoutUser))))
-
-	fileServer := http.FileServer(http.Dir("./ui/static"))
-	mux.Get("/static/", http.StripPrefix("/static/", fileServer))
-
-	return app.recoverPanic(app.logRequest(secureHeaders(mux)))
+	return standardMiddleware.Then(mux)
 }
