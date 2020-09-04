@@ -9,6 +9,10 @@ import (
 	"strconv"
 )
 
+func ping(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("OK"))
+}
+
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	s, err := app.snippets.Latest()
 	if err != nil {
@@ -91,9 +95,9 @@ func (app *application) signupUser(w http.ResponseWriter, r *http.Request) {
 	form := forms.New(r.PostForm)
 	form.Required("name", "email", "password")
 	form.MaxLength("name", 255)
+	form.MinLength("password", 10)
 	form.MaxLength("email", 255)
 	form.MatchesPattern("email", forms.EmailRX)
-	form.MinLength("name", 10)
 
 	if !form.Valid() {
 		app.render(w, r, "signup.page.html", &templateData{Form: form})

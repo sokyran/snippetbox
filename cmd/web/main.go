@@ -1,6 +1,7 @@
 package main
 
 import (
+	"avgustavgust/snippetbox/pkg/models"
 	"avgustavgust/snippetbox/pkg/models/mysql"
 	"crypto/tls"
 	"database/sql"
@@ -19,13 +20,25 @@ type contextKey string
 
 const contextKeyIsAuthenticated contextKey = contextKey("IsAuthenticated")
 
+type snippets interface {
+	Insert(string, string, string) (int, error)
+	Get(int) (*models.Snippet, error)
+	Latest() ([]*models.Snippet, error)
+}
+
+type users interface {
+	Insert(string, string, string) error
+	Authenticate(string, string) (int, error)
+	Get(int) (*models.User, error)
+}
+
 type application struct {
 	infoLog       *log.Logger
 	errorLog      *log.Logger
 	session       *sessions.Session
-	users         *mysql.UserModel
-	snippets      *mysql.SnippetModel
 	templateCache map[string]*template.Template
+	users         users
+	snippets      snippets
 }
 
 func main() {
